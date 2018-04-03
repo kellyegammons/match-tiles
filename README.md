@@ -1,2 +1,2 @@
 # match-tiles
-timed tile matching game; javascript/html/css
+timed tile matching game; jquery/css
