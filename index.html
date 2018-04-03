@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+  <head>
+         <meta charset="UTF-8">
+         <title>Match the Tiles</title>
+        <link href='http://fonts.googleapis.com/css?family=Handlee' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="style.css"/>
+      <script src="jquery-1.11.0.min.js"></script>
+      <script name ="pictures">
+        var cardImages = {
+          "A": {"name":"Flower", "file":"flower1.png"},
+          "B": {"name":"Flowers", "file":"flower2.png"},
+          "C": {"name":"Tulips", "file":"flower3.png"},
+          "D": {"name":"Dafodil", "file":"flower4.png"},
+          "E": {"name":"Lavender", "file":"flower5.png"},
+          "F": {"name":"Sakura", "file":"flower6.png"},
+          "G": {"name":"Mushroom", "file":"flower7.png"},
+          "H": {"name":"Cactus", "file":"flower8.png"},
+          "I": {"name":"Lotus", "file":"flower9.png"},
+          "J": {"name":"Carnation", "file":"flower10.png"}
+        }
+      </script>
+      <script>
+          var memGame = new Object();
+          memGame.cleared = 0;
+          memGame.mode = "default";
+          memGame.grid = {
+            cardSize : 120,
+            height : function(){ return memGame.grid.cardSize * 5 },
+            width : function(){ return memGame.grid.cardSize * 8 }
+          }
+          memGame.cardarray = ['A', 'A', 'B', 'B', 'A', 'A', 'B', 'B', 'C', 'C', 'C', 'C', 'D', 'D', 'D', 'D', 'E', 'E', 'E', 'E', 'F', 'F', 'F', 'F', 'G', 'G', 'G', 'G', 'H', 'H', 'H', 'H', 'I', 'I', 'J', 'J', 'I', 'I', 'J', 'J'];
+          memGame.cardPictures = cardImages;
+          memGame.glitter = function(selector) {
+            $(selector).append('<div class="particle particle-a"></div><div class="particle particle-b"></div><div class="particle particle-c"></div>');
+          }
+          //memGame.cardarray = ['A', 'A', 'B', 'B'];
+          memGame.cardvalues = [];
+          memGame.tile_ids = [];
+          memGame.tiles_flipped = 0;
+          memGame.shuffle = function(array) {
+            var i = array.length, j, temp;
+            while(--i > 0) {
+              j = Math.floor(Math.random() * (i+1));
+              temp = array[j];
+              array[j] = array[i];
+              array[i] = temp;
+            }
+          }
+          memGame.message = function(name, title, content) {
+            $("#board").append('<div class="message '+name+'"><h3>'+title+'</h3> <div class="replay">'+content+'</div></div>');
+            $(".message").on("click", function() {
+                 memGame.newBoard(200);
+            });
+          }
+          memGame.timeLimit = 300;
+          memGame.clock = function() {
+            $(".time-board").removeClass("hurry");
+            $(".time-board .time").html(memGame.timeLimit);
+            var timer = setInterval(function(){
+                memGame.timeLimit--;
+                $(".time-board .time").html(memGame.timeLimit);
+                if(memGame.timeLimit === 49) {
+                  $(".time-board").addClass("hurry");
+                }
+                if(memGame.timeLimit < 1) {
+                  if(memGame.cleared === 0) memGame.message("time-limit-reached", "Time ran out!", "Play again?");
+                  memGame.clock.clear();
+                }
+                if(memGame.cleared === 1) {
+                  memGame.clock.clear();
+                }
+              }, 1000);
+            memGame.clock.clear = function() {
+              clearInterval(timer);
+            }
+          }
+          memGame.score = function(value) {
+            $(".score-board .score").html(value * 1000);
+            $(".score-board").animate({"width":"+=10px","height":"+=10px", "left":"-=5px", "top":"-=5px", "font-size":"+=.1em"}, 100)
+                             .animate({"width":"-=10px","height":"-=10px", "left":"+=5px", "top":"+=5px", "font-size":"-=.1em"}, 150)
+          }
+          memGame.footer = function() {
+            var controls = function() {
+              $("footer").append('<div class="controls"><div class="button speed">Speed Mode</div><div class="button new">New Game</div></div>');
+              $(".controls .button").on("click", function() {
+                 memGame.clock.clear();
+                 if($(this).hasClass("speed")) {
+                   memGame.newBoard(50, "speed");
+                 } else {
+                   memGame.newBoard(200);
+                 }
+              });
+            }
+ 
+            controls();
+          }
+          memGame.newBoard = function(time, mode) {
+            memGame.cleared = 0;
+            memGame.tiles_flipped = 0;
+            memGame.timeLimit = time;
+            memGame.shuffle(memGame.cardarray);
+            memGame.clock();
+            $("#board").remove();
+            $("main").append($('<div id="board"></div>').css({"width": memGame.grid.width(), "height": memGame.grid.height()}).fadeIn(1000));
+            var offsetTime = 0;
+            var x = 0;
+            var y = 0;
+            $.each(memGame.cardarray, function(i, item) {
+              if(i > 0) x = x + memGame.grid.cardSize;
+              if(x > (memGame.grid.width() - memGame.grid.cardSize)) {
+                y = y + memGame.grid.cardSize;
+                x = 0;
+              }
+              offsetTime = offsetTime + 50
+              $("#board").append(
+                    $('<div class="tile-wrap"></div>').css({"left": x, "top" : y, "width" : memGame.grid.cardSize, "height" : memGame.grid.cardSize})
+                                                      .fadeIn(offsetTime)
+                                                      .append($('<div id="'+i+'" class="tile"></div>').css({"width" : memGame.grid.cardSize - 15, "height" : memGame.grid.cardSize - 15})));
+            });
+            $(".tile").on("click", function() {
+              memGame.flipTile(this, memGame["cardarray"][this.id]);
+            });
+
+            if(mode === "speed") {
+              $("header .mode").html("Speed Mode!");
+            } else {
+              $("header .mode").html("");
+            }
+          }
+
+
+          memGame.rememberTile = function(tile,val) {
+            memGame.cardvalues.push(val);
+            memGame.tile_ids.push(tile.id);
+          }
+          memGame.clearTileMemory = function() {
+            memGame.cardvalues = [];
+            memGame.tile_ids = [];
+          }
+          memGame.flipFace = function(tile,val) {
+            $(tile).html('<img src="'+memGame.cardPictures[val]["file"]+'" />').animate({"width":"+=14px","height":"+=14px", "left":"-=8px", "top":"-=8px"}, 100)
+                             .animate({"width":"-=14px","height":"-=14px", "left":"+=8px", "top":"+=8px"}, 150)
+            memGame.rememberTile(tile,val);
+          }
+
+          memGame.flipBack = function() {
+            var tile1 = "#" + memGame.tile_ids[0];
+            var tile2 = "#" + memGame.tile_ids[1];
+            console.log(tile1);
+            setTimeout(function(){
+              $(tile1 + ", " +tile2).html("");
+            }, 1000);
+            memGame.clearTileMemory();
+          }
+          memGame.isMatch = function() {
+            if(memGame.cardvalues[0] === memGame.cardvalues[1]) return true;
+          }
+          memGame.addScore = function() {
+            memGame.tiles_flipped += 2;
+            memGame.score(memGame.tiles_flipped);
+            var tile1 = "#" + memGame.tile_ids[0];
+            var tile2 = "#" + memGame.tile_ids[1];
+            $(tile1 + ", " +tile2).addClass("matched");
+            memGame.glitter(tile1);
+            memGame.glitter(tile2);
+            memGame.clearTileMemory();
+
+            if(memGame.tiles_flipped == memGame.cardarray.length) {//game is won here
+              memGame.message("game-complete", "Complete!", "Play again?");
+              memGame.cleared = 1;
+              memGame.clearTileMemory();
+            }
+          }
+
+          memGame.flipTile = function(tile, val) {
+            if(tile.innerHTML == "" && memGame.cardvalues.length < 2 && memGame.timeLimit > 0) {
+              memGame.flipFace(tile,val);//flip the card
+              if(memGame.cardvalues.length === 2) {
+                if(memGame.isMatch()) {
+                  memGame.addScore();
+                } else {
+                  memGame.flipBack();
+                }
+              }
+            }
+          }
+        $(document).ready( function() {
+          memGame.newBoard(200);
+          memGame.footer();
+        });
+
+      </script>
+  </head>
+    <body>
+      <header>
+        <div class="score-board">Score: <span class="score">0</span></div>
+        <div class="time-board">Time: <span class="time">0</span></div>
+        <h1>Match the Tiles</h1>
+        <div class="mode"></div>
+      </header>
+      <main></main>
+      <footer>
+      </footer>
+    </body>
+</html>
